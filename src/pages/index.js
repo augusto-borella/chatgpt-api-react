@@ -8,41 +8,79 @@ import TypingAnimation from "../components/TypingAnimation";
 
 const inter = Inter({ subsets: ['latin'] })
 
+const template = `
+You are a world class philosopher.
+Students will will ask you questions about the bimodal philosophical school of thinking and you will answer them.
+    You should answer the questions in a way that is consistent with the bimodal philosophical school of thinking.
+    and you will follow ALL of the rules below:
+
+    1/ Response should be very similar to the finest philosophical thinking, return just the answer
+
+2/ If the finest philosophical thinking are irrelevant, then try to mimic the style of the finest philosophical thinking
+
+3/ if there are important concepts in the answer, you should present their definitions at the of the answer. Include a maximum of 3 definitions.
+
+4/ You need to be empathic with the student and double check if the student is satisfied with the answer and understanding the answers and concepts.
+
+5/ a score metric that evaluates in scale between -5 and 5 if the students identifies himself with the paradigms of the bimodal philosophical school of thinking. Include the score at the end of the answer. Where -5 fully desagree with bimodal philosophical school of thinking paradigms. And 5 fully agree with bimodal philosophical school of thinking paradigms.
+
+6/ You must stimulate the student to ask more questions and be curious about the bimodal philosophical school of thinking.
+
+7/ Give answers with at least 100 words, answers with less than 100 words will be penalized.
+
+8/ Answer him with at least 100 words.
+
+`
+//OpenAI.api_key = os.getenv("OPENAI_API_KEY")
+
+//const llm_tuned = new OpenAI({temperature: 0.5, model: finetuned_AI_id})
+//const prompt = PromptTemplate.fromTemplate(template);
+//const chain_tuned = new LLMChain({llm: llm_tuned, prompt});
+
 export default function Home() {
   const [inputValue, setInputValue] = useState('');
-  const [chatLog, setChatLog] = useState([]);
+  const [chatLog, setChatLog] = useState([{ role: 'system', content: template }]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    setChatLog((prevChatLog) => [...prevChatLog, { type: 'user', message: inputValue }])
+    setChatLog((prevChatLog) => [...prevChatLog, { role: 'user', content: inputValue }])
 
-    sendMessage(inputValue);
-    
+    //sendMessage(inputValue);
+    setFetching(true);
+
     setInputValue('');
   }
+  useEffect(() => {
+    if (fetching) {
+    //const sendMessage = (message) => {
+      const finetuned_AI_id = "ft:gpt-3.5-turbo-0613:personal::7wIMQJMw"
+      const regular_AI_id = "gpt-3.5-turbo-0613"
+      const url = '/api/chat';
+      console.log("sendMessage: ", chatLog)
+      const data = {
+        model: finetuned_AI_id,
+        //messages: [{ "role": "user", "content": message }],
+        messages: chatLog,
+        temperature: 0.7
+      };
 
-  const sendMessage = (message) => {
-    const url = '/api/chat';
-
-    const data = {
-      model: "gpt-3.5-turbo-0301",
-      messages: [{ "role": "user", "content": message }]
-    };
-
-    setIsLoading(true);
-
-    axios.post(url, data).then((response) => {
-      console.log(response);
-      setChatLog((prevChatLog) => [...prevChatLog, { type: 'bot', message: response.data.choices[0].message.content }])
-      setIsLoading(false);
-    }).catch((error) => {
-      setIsLoading(false);
-      console.log(error);
-    })
-  }
-
+      axios.post(url, data).then((response) => {
+        console.log(response);
+        setChatLog((prevChatLog) => [...prevChatLog, { role: 'assistant', content: response.data.choices[0].message.content }])
+        setIsLoading(false);
+        setFetching(false);
+      }).catch((error) => {
+        setIsLoading(false);
+        console.log(error);
+        setFetching(false)
+      })
+    }
+    }, [fetching])
+  console.log("chatLog: ", chatLog)
+  console.log("inputValue: ", inputValue)
   return (
     <div className="container mx-auto max-w-[700px]">
       <div className="flex flex-col h-screen bg-gray-900">
@@ -52,12 +90,12 @@ export default function Home() {
           {
         chatLog.map((message, index) => (
           <div key={index} className={`flex ${
-            message.type === 'user' ? 'justify-end' : 'justify-start'
+            message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}>
             <div className={`${
-              message.type === 'user' ? 'bg-purple-500' : 'bg-gray-800'
+              message.role === 'user' ? 'bg-purple-500' : 'bg-gray-800'
             } rounded-lg p-4 text-white max-w-sm`}>
-            {message.message}
+            {message.content}
             </div>
             </div>
         ))
